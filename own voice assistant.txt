@@ -1,0 +1,82 @@
+import speech_recognition as sr
+import pyttsx3
+import datetime
+import webbrowser
+import requests
+
+# Initialize text-to-speech engine
+engine = pyttsx3.init()
+
+def speak(text):
+    """Convert text to speech."""
+    engine.say(text)
+    engine.runAndWait()
+
+def listen():
+    """Listen to the user's command and convert it to text."""
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        audio = recognizer.listen(source)
+        try:
+            command = recognizer.recognize_google(audio)
+            print(f"You said: {command}")
+            return command.lower()
+        except sr.UnknownValueError:
+            print("Sorry, I did not understand that.")
+            return None
+        except sr.RequestError:
+            print("Sorry, there was an error with the speech recognition service.")
+            return None
+
+def tell_time():
+    """Respond with the current time."""
+    now = datetime.datetime.now()
+    time_str = now.strftime("%H:%M")
+    speak(f"The current time is {time_str}")
+
+def get_weather():
+    """Fetch and respond with the current weather."""
+    API_KEY = "your_openweathermap_api_key"  # Replace with your API key
+    BASE_URL = "http://api.openweathermap.org/data/2.5/weather"
+    city = "London"  # Default city
+
+    params = {
+        'q': city,
+        'appid': API_KEY,
+        'units': 'metric'  # Use 'imperial' for Fahrenheit
+    }
+
+    response = requests.get(BASE_URL, params=params)
+    if response.status_code == 200:
+        data = response.json()
+        temp = data['main']['temp']
+        description = data['weather'][0]['description']
+        speak(f"The weather in {city} is {description} with a temperature of {temp} degrees Celsius.")
+    else:
+        speak("Sorry, I could not fetch the weather information.")
+
+def open_website(url):
+    """Open a website in the default browser."""
+    webbrowser.open(url)
+
+def main():
+    speak("Hello! How can I assist you today?")
+    while True:
+        command = listen()
+        if command:
+            if "time" in command:
+                tell_time()
+            elif "weather" in command:
+                get_weather()
+            elif "open" in command and "website" in command:
+                website = command.split("open website ")[-1]
+                open_website(website)
+            elif "exit" in command:
+                speak("Goodbye!")
+                break
+            else:
+                speak("Sorry, I didn't understand that command.")
+
+if __name__ == "__main__":
+    main()
